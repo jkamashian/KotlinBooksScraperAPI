@@ -1,17 +1,17 @@
 // get lambda setup
 resource "aws_lambda_function" "book_get" {
   function_name = "book_get"
-  filename         = "../build/libs/GetFunction-1.0-SNAPSHOT.jar" # .JAR path
-  source_code_hash = filebase64sha256("../build/libs/GetFunction-1.0-SNAPSHOT.jar")
+  filename         = var.get_file_path # .JAR path
+  source_code_hash = filebase64sha256(var.get_file_path)
   handler          = "get.Handler::handleRequest"
   runtime          = "java21"
   role             = aws_iam_role.lambda_execution_role.arn
   timeout          = 900 # Function timeout in seconds
   vpc_config {
     security_group_ids = [aws_security_group.lambda_sg.id]
-    subnet_ids         = var.subnets
+    subnet_ids         = [aws_subnet.private_2.id]
   }
-  # swtich to AWS Secrets Manager
+  # switch to AWS Secrets Manager
   environment {
     variables = {
       DB_HOST = aws_db_instance.librarian.address

@@ -7,12 +7,12 @@ resource "aws_security_group" "lambda_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.lambda_sg_egress_cidr]
   }
 
   ingress {
     from_port   = 0
-    to_port     = 65535
+    to_port     = 65535// can be negative 1
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }
@@ -26,14 +26,14 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.rds_sg_ingress_cidr] // limit to the private sub net
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.rds_sg_egress_cidr]
   }
 }
 

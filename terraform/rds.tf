@@ -18,6 +18,7 @@ resource "aws_db_instance" "librarian" {
   skip_final_snapshot = true
 }
 
+
 resource "null_resource" "db_setup" {
 
   depends_on = [aws_db_instance.librarian, aws_security_group.rds_sg]
@@ -29,10 +30,9 @@ resource "null_resource" "db_setup" {
   }
 }
 
-# Optionally, define a DB subnet group if you have specific subnets
 resource "aws_db_subnet_group" "aws_db_subnet_group" {
   name       = "main-db-subnet-group"
-  subnet_ids = var.subnets
+  subnet_ids = concat([aws_subnet.private_1.id, aws_subnet.private_2.id], var.subnets)
   tags = {
     Name = "My DB Subnet Group"
   }

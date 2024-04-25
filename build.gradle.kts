@@ -20,6 +20,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("org.jsoup:jsoup:1.16.2")
+    implementation("com.google.code.gson:gson:2.8.9")
     testImplementation(kotlin("test"))
 }
 

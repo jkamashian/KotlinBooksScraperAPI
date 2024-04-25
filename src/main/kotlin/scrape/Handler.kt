@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.newSingleThreadContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
@@ -16,12 +18,26 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.zip.ZipFile
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.SQLException
+
+private fun getDbConnection(): Connection {
+    val dbHost = System.getenv("DB_HOST")
+    val dbUser = System.getenv("DB_USER")
+    val dbPass = System.getenv("DB_PASS")
+    val dbUrl = "jdbc:postgresql://$dbHost/bookshelf"
+
+    return DriverManager.getConnection(dbUrl, dbUser, dbPass)
+}
+
 
 data class BookMetadata(
     val title: String?,
     val author: String?,
     val language: String?
 )
+val dbDispatcher = newSingleThreadContext("DBDispatcher")
 
 class Handler : RequestHandler<ScheduledEvent, String> {
 
@@ -59,6 +75,9 @@ suspend fun downloadUnzipSend(client: OkHttpClient, zipURL: String, context: Con
         bookTxt?.let {
             val bootMetadata = extractMetadata(it)
             context.logger.log("Extracted for ${bootMetadata.title}\n${bootMetadata.author}\n${bootMetadata.language}")
+            withContext(dbDispatcher) {
+                insertBook(bootMetadata,context)
+            }
         }
     } catch (e:Exception){
         context.logger.log("Error processing $zipURL: ${e.message}")
@@ -132,4 +151,22 @@ fun extractMetadata(bookFile: File): BookMetadata {
     }
 
     return BookMetadata(title, author, language)
+}
+suspend fun insertBook(bookMetaData: BookMetadata, context: Context) = withContext(dbDispatcher) {
+    val logger = context.logger
+    val dbConnection: Connection by lazy { getDbConnection() }
+
+    val sql = "INSERT INTO books (title, author, language) VALUES (?, ?, ?)"
+    try {
+        dbConnection.prepareStatement(sql).use { statement ->
+            statement.setString(1, bookMetaData.title)
+            statement.setString(2, bookMetaData.author)
+            statement.setString(3, bookMetaData.language)
+
+            statement.executeUpdate()
+        }
+        logger.log("INSERTED: ${bookMetaData.title}")
+    } catch (e: SQLException) {
+        logger.log("Error inserting book data: ${e.message}")
+    }
 }
